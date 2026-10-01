@@ -1,5 +1,5 @@
 import { insertRunLog, listDaySnapshots, upsertSnapshot } from "@/db/verdict-repo";
-import { collectDailyMatchInputs } from "@/lib/sofascore";
+import { collectDailyMatchInputs } from "@/lib/api-football";
 import { computeMatch } from "@/lib/verdict/engine";
 import { MatchResult } from "@/lib/verdict/types";
 
