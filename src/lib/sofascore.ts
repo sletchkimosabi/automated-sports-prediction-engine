@@ -34,8 +34,16 @@ const safeFetchJson = async (path: string): Promise<any> => {
   const url = `${SOFASCORE_BASE_URL}${path}`;
   const res = await fetch(url, {
     headers: {
-      accept: "application/json",
-      "user-agent": "Mozilla/5.0",
+      accept: "application/json, text/plain, */*",
+      "accept-language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+      referer: "https://www.sofascore.com/",
+      origin: "https://www.sofascore.com",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
     },
     next: { revalidate: 0 },
   });
