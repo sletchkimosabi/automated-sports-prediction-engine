@@ -198,14 +198,22 @@ const parseOddsPack = async (eventId: number) => {
 
 export const collectDailyMatchInputs = async (dayIso: string): Promise<MatchInput[]> => {
   const out: MatchInput[] = [];
+  const failures: { competition: string; error: string }[] = [];
+  let notFoundCount = 0;
 
   for (const competition of COMPETITIONS) {
     try {
       const tournamentId = await findTournamentId(competition.query);
-      if (!tournamentId) continue;
+      if (!tournamentId) {
+        notFoundCount += 1;
+        continue;
+      }
 
       const seasonId = await findSeasonId(tournamentId);
-      if (!seasonId) continue;
+      if (!seasonId) {
+        notFoundCount += 1;
+        continue;
+      }
 
       const events = await collectCompetitionEvents(tournamentId, seasonId, dayIso);
 
@@ -245,10 +253,29 @@ export const collectDailyMatchInputs = async (dayIso: string): Promise<MatchInpu
           extraOdds: oddsPack.extraOdds,
         });
       }
-    } catch {
-      // Ne bloque jamais le pipeline complet à cause d'un championnat.
+    } catch (error) {
+      // Ne bloque jamais le pipeline complet à cause d'un championnat,
+      // mais on garde une trace précise de l'échec pour diagnostic.
+      failures.push({
+        competition: competition.query,
+        error: error instanceof Error ? error.message : String(error),
+      });
       continue;
     }
+  }
+
+  // Si on a zéro match ET que la majorité (ou la totalité) des appels ont
+  // échoué, ce n'est très probablement pas "pas de match aujourd'hui" mais
+  // un vrai blocage réseau côté Sofascore : on le fait remonter clairement
+  // au lieu d'afficher silencieusement "0 matchs calculés".
+  if (out.length === 0 && failures.length > 0) {
+    const sample = failures.slice(0, 3)
+      .map((f) => `${f.competition} → ${f.error}`)
+      .join(" | ");
+    throw new Error(
+      `Collecte Sofascore en échec sur ${failures.length}/${COMPETITIONS.length} championnats ` +
+      `(base: ${SOFASCORE_BASE_URL}). Exemples : ${sample}`,
+    );
   }
 
   return out;
